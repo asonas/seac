@@ -1,55 +1,47 @@
-// Copyright (c) 2012 The Chromium Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file.
-
-// To make sure we can uniquely identify each screenshot tab, add an id as a
-// query param to the url that displays the screenshot.
-// Note: It's OK that this is a global variable (and not in localStorage),
-// because the event page will stay open as long as any screenshot tabs are
-// open.
-var id = 100;
-
 function takeScreenshot() {
+  chrome.tabs.getSelected(null, function(tab) {
+    console.log(tab.title);
+    title = tab.title;
+  })
+
   chrome.tabs.captureVisibleTab(null, function(img) {
-    var screenshotUrl = img;
     console.log(img);
-    var viewTabUrl = chrome.extension.getURL('screenshot.html?id=' + id++);
+    dataArray = img.split(",")
+    var blob = b64toBlob(dataArray[1], "image/jpeg");
+    var blobUrl = URL.createObjectURL(blob);
 
-    chrome.tabs.create({url: viewTabUrl}, function(tab) {
-      var targetId = tab.id;
+    var saveas = document.createElement("a");
+    saveas.style.display = "none";
+    saveas.href = blobUrl;
+    saveas.download = title + ".jpg";
+    saveas.click();
 
-      var addSnapshotImageToTab = function(tabId, changedProps) {
-        // We are waiting for the tab we opened to finish loading.
-        // Check that the the tab's id matches the tab we opened,
-        // and that the tab is done loading.
-        if (tabId != targetId || changedProps.status != "complete")
-          return;
-
-        // Passing the above test means this is the event we were waiting for.
-        // There is nothing we need to do for future onUpdated events, so we
-        // use removeListner to stop geting called when onUpdated events fire.
-        chrome.tabs.onUpdated.removeListener(addSnapshotImageToTab);
-
-        // Look through all views to find the window which will display
-        // the screenshot.  The url of the tab which will display the
-        // screenshot includes a query parameter with a unique id, which
-        // ensures that exactly one view will have the matching URL.
-        var views = chrome.extension.getViews();
-        for (var i = 0; i < views.length; i++) {
-          var view = views[i];
-          if (view.location.href == viewTabUrl) {
-            console.log(screenshotUrl);
-            view.setScreenshotUrl(screenshotUrl);
-            break;
-          }
-        }
-      };
-      chrome.tabs.onUpdated.addListener(addSnapshotImageToTab);
-    });
   });
 }
+function b64toBlob(b64Data, contentType, sliceSize) {
+    contentType = contentType || '';
+    sliceSize = sliceSize || 512;
 
-// Listen for a click on the camera icon.  On that click, take a screenshot.
-chrome.browserAction.onClicked.addListener(function(tab) {
+    var byteCharacters = atob(b64Data);
+    var byteArrays = [];
+
+    for (var offset = 0; offset < byteCharacters.length; offset += sliceSize) {
+        var slice = byteCharacters.slice(offset, offset + sliceSize);
+
+        var byteNumbers = new Array(slice.length);
+        for (var i = 0; i < slice.length; i++) {
+            byteNumbers[i] = slice.charCodeAt(i);
+        }
+
+        var byteArray = new Uint8Array(byteNumbers);
+
+        byteArrays.push(byteArray);
+    }
+
+    var blob = new Blob(byteArrays, {type: "application/octet-stream"});
+    return blob;
+}
+
+chrome.commands.onCommand.addListener(function(command) {
   takeScreenshot();
 });

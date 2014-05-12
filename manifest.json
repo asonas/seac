@@ -10,6 +10,15 @@
     "default_icon": "camera.png",
     "default_title": "Take a screen shot!"
   },
+  "commands": {
+    "toggle-feature": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "MacCtrl+Shift+S"
+      },
+      "description": "Send a 'toggle-feature' event to the extension"
+    }
+  },
   "permissions" : ["tabs", "<all_urls>"],
   "manifest_version": 2
 }
